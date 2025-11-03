@@ -1,0 +1,15 @@
+[project]
+name = "agent-framework-testing"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "agent-framework>=1.0.0b251028",
+    "azure-ai-agents>=1.2.0b5",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.1.0",
+]
