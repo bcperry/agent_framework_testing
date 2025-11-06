@@ -14,7 +14,6 @@ Writer creates content, Reviewer evaluates quality:
 Both paths converge at Summarizer for final report.
 """
 
-import os
 from typing import Any
 
 from agent_framework import AgentExecutorResponse, WorkflowBuilder
@@ -60,10 +59,10 @@ def is_approved(message: Any) -> bool:
 
 # Create Azure OpenAI chat client
 chat_client = OpenAIChatClient(
-        api_key="ollama", # Just a placeholder, Ollama doesn't require API key
-        base_url="http://localhost:11434/v1",
-        model_id="gpt-oss:20b",
-    )
+    api_key="ollama",  # Just a placeholder, Ollama doesn't require API key
+    base_url="http://localhost:11434/v1",
+    model_id="gpt-oss:20b",
+)
 
 # Create Writer agent - generates content
 writer = chat_client.create_agent(

@@ -8,6 +8,7 @@ dependencies = [
     "agent-framework>=1.0.0b251028",
     "agent-framework-devui>=1.0.0b251028",
     "azure-ai-agents>=1.2.0b5",
+    "pre-commit>=4.3.0",
 ]
 
 [dependency-groups]
