@@ -16,9 +16,11 @@ Both paths converge at Summarizer for final report.
 
 from typing import Any
 
-from agent_framework import AgentExecutorResponse, WorkflowBuilder
-from agent_framework.openai import OpenAIChatClient
+from agent_framework import Agent, AgentExecutorResponse, WorkflowBuilder
+from agent_framework.openai import OpenAIChatOptions
 from pydantic import BaseModel
+
+from azure_client import create_chat_client
 
 
 # Define structured output for review results
@@ -39,7 +41,7 @@ def needs_editing(message: Any) -> bool:
     if not isinstance(message, AgentExecutorResponse):
         return False
     try:
-        review = ReviewResult.model_validate_json(message.agent_run_response.text)
+        review = ReviewResult.model_validate_json(message.agent_response.text)
         return review.score < 80
     except Exception:
         return False
@@ -51,33 +53,30 @@ def is_approved(message: Any) -> bool:
     if not isinstance(message, AgentExecutorResponse):
         return True
     try:
-        review = ReviewResult.model_validate_json(message.agent_run_response.text)
+        review = ReviewResult.model_validate_json(message.agent_response.text)
         return review.score >= 80
     except Exception:
         return True
 
 
-# Create Azure OpenAI chat client
-chat_client = OpenAIChatClient(
-    api_key="ollama",  # Just a placeholder, Ollama doesn't require API key
-    base_url="http://localhost:11434/v1",
-    model_id="gpt-oss:20b",
-)
+# Routes to Azure OpenAI from AZURE_OPENAI_ENDPOINT / _MODEL / _API_KEY
+chat_client = create_chat_client()
 
 # Create Writer agent - generates content
-writer = chat_client.create_agent(
-    name="Writer",
-    instructions=(
+writer = Agent(
+    chat_client,
+    (
         "You are an excellent content writer. "
         "Create clear, engaging content based on the user's request. "
         "Focus on clarity, accuracy, and proper structure."
     ),
+    name="Writer",
 )
 
 # Create Reviewer agent - evaluates and provides structured feedback
-reviewer = chat_client.create_agent(
-    name="Reviewer",
-    instructions=(
+reviewer = Agent(
+    chat_client,
+    (
         "You are an expert content reviewer. "
         "Evaluate the writer's content based on:\n"
         "1. Clarity - Is it easy to understand?\n"
@@ -89,34 +88,37 @@ reviewer = chat_client.create_agent(
         "- feedback: concise, actionable feedback\n"
         "- clarity, completeness, accuracy, structure: individual scores (0-100)"
     ),
-    response_format=ReviewResult,
+    name="Reviewer",
+    default_options=OpenAIChatOptions(response_format=ReviewResult),
 )
 
 # Create Editor agent - improves content based on feedback
-editor = chat_client.create_agent(
-    name="Editor",
-    instructions=(
+editor = Agent(
+    chat_client,
+    (
         "You are a skilled editor. "
         "You will receive content along with review feedback. "
         "Improve the content by addressing all the issues mentioned in the feedback. "
         "Maintain the original intent while enhancing clarity, completeness, accuracy, and structure."
     ),
+    name="Editor",
 )
 
 # Create Publisher agent - formats content for publication
-publisher = chat_client.create_agent(
-    name="Publisher",
-    instructions=(
+publisher = Agent(
+    chat_client,
+    (
         "You are a publishing agent. "
         "You receive either approved content or edited content. "
         "Format it for publication with proper headings and structure."
     ),
+    name="Publisher",
 )
 
 # Create Summarizer agent - creates final publication report
-summarizer = chat_client.create_agent(
-    name="Summarizer",
-    instructions=(
+summarizer = Agent(
+    chat_client,
+    (
         "You are a summarizer agent. "
         "Create a final publication report that includes:\n"
         "1. A brief summary of the published content\n"
@@ -124,6 +126,7 @@ summarizer = chat_client.create_agent(
         "3. Key highlights and takeaways\n"
         "Keep it concise and professional."
     ),
+    name="Summarizer",
 )
 
 # Build workflow with branching and convergence:
@@ -135,8 +138,8 @@ workflow = (
     WorkflowBuilder(
         name="Content Review Workflow",
         description="Multi-agent content creation workflow with quality-based routing (Writer → Reviewer → Editor/Publisher)",
+        start_executor=writer,
     )
-    .set_start_executor(writer)
     .add_edge(writer, reviewer)
     # Branch 1: High quality (>= 80) goes directly to publisher
     .add_edge(reviewer, publisher, condition=is_approved)
@@ -166,7 +169,7 @@ def main():
     logger.info("- Path 2 (score < 80): Reviewer → Editor → Publisher → Summarizer")
     logger.info("- Both paths converge at Summarizer for final report")
 
-    serve(entities=[workflow], port=8093, auto_open=True)
+    serve(entities=[workflow], port=8093, auto_open=True, auth_enabled=False)
 
 
 if __name__ == "__main__":

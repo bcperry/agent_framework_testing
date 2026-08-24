@@ -1,0 +1,85 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Demo",
+      "detail": "Ctrl+Shift+B - syncs deps, then runs DevUI (which starts the records API and MCP server)",
+      "type": "shell",
+      "command": "uv run devui.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "dependsOn": ["Sync dependencies"],
+      "isBackground": true,
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "demo",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Sync dependencies",
+      "detail": "uv sync, and warn if .env is missing",
+      "type": "shell",
+      "command": "uv sync && { [ -f .env ] || echo 'WARNING: .env not found. Copy .env.example to .env and fill it in, or the demo will fail to authenticate.'; }",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "demo",
+        "close": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Stop Demo",
+      "detail": "Kill DevUI and the backing records API / MCP server",
+      "type": "shell",
+      "command": "pkill -f devui.py; pkill -f user_api; sleep 1; echo 'demo services stopped'",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Records API only",
+      "detail": "FastAPI on :8099 with docs at /docs (DevUI starts this for you)",
+      "type": "shell",
+      "command": "uv run uvicorn user_api.api:app --port 8099 --reload",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "services" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run MCP server only",
+      "detail": "MCP server on :8098, generated from the FastAPI app (DevUI starts this for you)",
+      "type": "shell",
+      "command": "uv run python -m user_api.mcp_server",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "services" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run workflow in DevUI",
+      "detail": "Content review workflow standalone on :8093",
+      "type": "shell",
+      "command": "uv run python -m workflow_agents.workflow",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint and format",
+      "detail": "pre-commit: ruff check --fix, ruff format, uv lock, uv export",
+      "type": "shell",
+      "command": "uv run pre-commit run -a",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+      "problemMatcher": []
+    }
+  ]
+}
