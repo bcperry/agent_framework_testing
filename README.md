@@ -123,6 +123,19 @@ uv run uvicorn user_api.api:app --port 8099   # REST API + OpenAPI docs at /docs
 uv run python -m user_api.mcp_server          # MCP server on :8098
 ```
 
+To drive the API by hand from Swagger, mint a demo token and paste it into **Authorize**:
+
+```bash
+uv run python -c "
+from user_api.auth import mint_user_token
+from user_api.data import DEMO_USERS
+for u in DEMO_USERS.values(): print(u['name'], '->', mint_user_token(u))
+"
+```
+
+These are self-signed dev tokens, valid one hour. Swapping one for another is the whole
+demo in miniature: same endpoint, same request, different data.
+
 ---
 
 ## User-scoped tool calls
@@ -176,7 +189,9 @@ never confirms that restricted material exists.
 Two deliberate design choices:
 
 1. **The token is bound in a closure, never a tool parameter.** The model chooses *whether* to
-   call a tool, never *who as*. There is no identity argument for it to set.
+   call a tool, never *who as*. There is no identity argument for it to set — the API declares
+   the token as an OpenAPI *security scheme*, so `authorization` never appears in the tool
+   schemas generated for MCP either.
 2. **The API decides, not the agent.** The agent can only present a token; the service decides
    what that token is worth.
 

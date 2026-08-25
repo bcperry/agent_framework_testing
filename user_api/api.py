@@ -5,18 +5,33 @@ The agent calling this API cannot widen its own access -- it can only present a
 token, and this service decides what that token is worth.
 """
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from .auth import TokenError, bearer_from_header
+from .auth import TokenError, decode_token
 from .data import describe_caller, get_record, no_records_reason, visible_records
 
 app = FastAPI(title="Records API", description="User-scoped demo API")
 
+# A security scheme rather than a header parameter: it drives Swagger's Authorize
+# button, and it keeps `authorization` out of the OpenAPI operation parameters --
+# so the MCP tools generated from this spec have no identity argument to set.
+bearer_scheme = HTTPBearer(
+    auto_error=False,
+    description="A demo token from user_api.auth.mint_user_token.",
+)
 
-def caller_claims(authorization: str | None = Header(default=None)) -> dict:
+
+def caller_claims(
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+) -> dict:
     """Validate the bearer token and hand back its claims."""
+    if credentials is None:
+        raise HTTPException(
+            status_code=401, detail="Missing or malformed Bearer Authorization header."
+        )
     try:
-        return bearer_from_header(authorization)
+        return decode_token(credentials.credentials)
     except TokenError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 

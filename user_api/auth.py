@@ -79,13 +79,3 @@ def decode_token(token: str) -> dict:
         raise TokenError("Token has expired.") from exc
     except jwt.InvalidTokenError as exc:
         raise TokenError(f"Token failed validation: {exc}") from exc
-
-
-def bearer_from_header(authorization: str | None) -> dict:
-    """Extract and validate claims from an ``Authorization: Bearer <token>`` header."""
-    if not authorization:
-        raise TokenError("Missing Authorization header.")
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer" or not token:
-        raise TokenError("Authorization header must use the Bearer scheme.")
-    return decode_token(token)
