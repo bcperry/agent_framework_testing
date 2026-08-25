@@ -8,7 +8,7 @@ token, and this service decides what that token is worth.
 from fastapi import Depends, FastAPI, Header, HTTPException
 
 from .auth import TokenError, bearer_from_header
-from .data import NotAuthorized, describe_caller, get_record, visible_records
+from .data import describe_caller, get_record, no_records_reason, visible_records
 
 app = FastAPI(title="Records API", description="User-scoped demo API")
 
@@ -29,12 +29,17 @@ def me(claims: dict = Depends(caller_claims)) -> dict:
 
 @app.get("/records", operation_id="list_records")
 def list_records(claims: dict = Depends(caller_claims)) -> dict:
-    """List every record the signed-in user is permitted to see."""
-    try:
-        records = visible_records(claims)
-    except NotAuthorized as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
-    return {"count": len(records), "records": records}
+    """List every record the signed-in user is permitted to see.
+
+    A caller the token does not authorize sees zero records with a stated reason,
+    not an error: the denial is data the agent can report rather than a failure it
+    has to guess about. Both transports inherit the same behaviour.
+    """
+    records = visible_records(claims)
+    body: dict = {"count": len(records), "records": records}
+    if not records:
+        body["reason"] = no_records_reason(claims)
+    return body
 
 
 @app.get("/records/{record_id}", operation_id="read_record")
@@ -44,10 +49,7 @@ def read_record(record_id: str, claims: dict = Depends(caller_claims)) -> dict:
     Records the caller may not see return 404 rather than 403, so the response
     does not leak the existence of restricted material.
     """
-    try:
-        record = get_record(claims, record_id)
-    except NotAuthorized as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    record = get_record(claims, record_id)
     if record is None:
         raise HTTPException(
             status_code=404, detail=f"No record '{record_id}' visible to this user."

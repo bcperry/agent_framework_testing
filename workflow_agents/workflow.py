@@ -62,6 +62,10 @@ def is_approved(message: Any) -> bool:
 # Routes to Azure OpenAI from AZURE_OPENAI_ENDPOINT / _MODEL / _API_KEY
 chat_client = create_chat_client()
 
+# Keep history client-side. With server-side state the agent replays a stored
+# `previous_response_id`, and one failed turn poisons that conversation for good.
+STATELESS = OpenAIChatOptions(store=False)
+
 # Create Writer agent - generates content
 writer = Agent(
     chat_client,
@@ -71,6 +75,7 @@ writer = Agent(
         "Focus on clarity, accuracy, and proper structure."
     ),
     name="Writer",
+    default_options=STATELESS,
 )
 
 # Create Reviewer agent - evaluates and provides structured feedback
@@ -89,7 +94,7 @@ reviewer = Agent(
         "- clarity, completeness, accuracy, structure: individual scores (0-100)"
     ),
     name="Reviewer",
-    default_options=OpenAIChatOptions(response_format=ReviewResult),
+    default_options=OpenAIChatOptions(response_format=ReviewResult, store=False),
 )
 
 # Create Editor agent - improves content based on feedback
@@ -102,6 +107,7 @@ editor = Agent(
         "Maintain the original intent while enhancing clarity, completeness, accuracy, and structure."
     ),
     name="Editor",
+    default_options=STATELESS,
 )
 
 # Create Publisher agent - formats content for publication
@@ -113,6 +119,7 @@ publisher = Agent(
         "Format it for publication with proper headings and structure."
     ),
     name="Publisher",
+    default_options=STATELESS,
 )
 
 # Create Summarizer agent - creates final publication report
@@ -127,6 +134,7 @@ summarizer = Agent(
         "Keep it concise and professional."
     ),
     name="Summarizer",
+    default_options=STATELESS,
 )
 
 # Build workflow with branching and convergence:

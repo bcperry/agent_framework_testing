@@ -20,7 +20,7 @@ DEMO_USERS: dict[str, dict] = {
     "ray.intern@contoso.us": {
         "oid": "22222222-2222-2222-2222-222222222222",
         "upn": "ray.intern@contoso.us",
-        "name": "ray Intern",
+        "name": "Ray Intern",
         "department": "Logistics",
         "clearance": "unclassified",
         "roles": ["Records.Reader"],
@@ -87,10 +87,6 @@ RECORDS: list[dict] = [
 ]
 
 
-class NotAuthorized(Exception):
-    """Raised when the caller's claims do not permit the requested action."""
-
-
 def _scopes(claims: dict) -> set[str]:
     return set(claims.get("scp", "").split())
 
@@ -114,13 +110,10 @@ def describe_caller(claims: dict) -> dict:
 
 
 def visible_records(claims: dict) -> list[dict]:
-    """Return only the records this caller's claims permit."""
+    """Return only the records this caller's claims permit -- possibly none."""
     scopes = _scopes(claims)
     if "records.read" not in scopes:
-        raise NotAuthorized(
-            "Token lacks the 'records.read' scope. The signed-in user is authenticated "
-            "but not authorized to read records."
-        )
+        return []
 
     profile = DEMO_USERS.get(claims.get("upn", ""), {})
     department = profile.get("department", "")
@@ -133,6 +126,16 @@ def visible_records(claims: dict) -> list[dict]:
         if (all_departments or record["department"] == department)
         and CLEARANCE_ORDER[record["classification"]] <= ceiling
     ]
+
+
+def no_records_reason(claims: dict) -> str:
+    """Explain an empty result, so an agent can report it instead of guessing."""
+    if "records.read" not in _scopes(claims):
+        return (
+            "Token lacks the 'records.read' scope: the signed-in user is authenticated "
+            "but not authorized to read records."
+        )
+    return "No records match this user's department and clearance."
 
 
 def get_record(claims: dict, record_id: str) -> dict | None:

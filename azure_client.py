@@ -9,6 +9,7 @@ Azure Government needs two things the framework won't infer:
 
 import os
 
+from agent_framework import FunctionInvocationConfiguration
 from agent_framework.openai import OpenAIChatClient
 from azure.identity import (
     AzureAuthorityHosts,
@@ -23,9 +24,15 @@ GOV_ENDPOINT_SUFFIX = ".azure.us"
 GOV_SCOPE = "https://cognitiveservices.azure.us/.default"
 PUBLIC_SCOPE = "https://cognitiveservices.azure.com/.default"
 
+# Without this a failed tool call reaches the model as bare "Error: Function failed.",
+# so it cannot tell a 404 from an outage -- and starts guessing.
+TOOL_ERRORS = FunctionInvocationConfiguration(include_detailed_errors=True)
+
 
 def create_chat_client(**kwargs) -> OpenAIChatClient:
     """Build an OpenAIChatClient for Azure OpenAI, using Entra ID when no key is set."""
+    kwargs.setdefault("function_invocation_configuration", TOOL_ERRORS)
+
     if os.getenv("AZURE_OPENAI_API_KEY"):
         return OpenAIChatClient(**kwargs)
 

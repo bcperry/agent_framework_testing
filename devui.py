@@ -19,6 +19,7 @@ import time
 import httpx
 from agent_framework import Agent, MCPStreamableHTTPTool
 from agent_framework.devui import serve
+from agent_framework.openai import OpenAIChatOptions
 from dotenv import load_dotenv
 
 from azure_client import create_chat_client
@@ -33,8 +34,12 @@ API_URL = "http://127.0.0.1:8099"
 MCP_URL = "http://127.0.0.1:8098/mcp"
 LEARN_MCP_URL = os.getenv("MCP_LEARN_URL", "https://learn.microsoft.com/api/mcp")
 
-# Add "nia.newhire@contoso.us" here to demo an authenticated-but-unauthorized user.
-DEMO_AGENT_USERS = ["dana.analyst@contoso.us", "sam.auditor@contoso.us"]
+# Every demo persona, including Nia -- authenticated but not authorized (0 records).
+DEMO_AGENT_USERS = list(DEMO_USERS)
+
+# Keep history client-side. With server-side state the agent replays a stored
+# `previous_response_id`, and one failed turn poisons that conversation for good.
+STATELESS = OpenAIChatOptions(store=False)
 
 RECORDS_INSTRUCTIONS = (
     "You help users inspect records. Use the provided tools. Report exactly what the "
@@ -81,6 +86,7 @@ def _records_agents(llm) -> list[Agent]:
                 name=f"Records_Functions_{given_name}",
                 description=f"REST function tools, acting as {upn}",
                 tools=make_records_tools(token, base_url=API_URL),
+                default_options=STATELESS,
             )
         )
         agents.append(
@@ -101,6 +107,7 @@ def _records_agents(llm) -> list[Agent]:
                         ),
                     )
                 ],
+                default_options=STATELESS,
             )
         )
     return agents
@@ -120,6 +127,7 @@ learn_agent = Agent(
     name="MSLearnAgent",
     description="Microsoft Learn MCP (public, unauthenticated)",
     tools=[MCPStreamableHTTPTool(name="Microsoft Learn MCP", url=LEARN_MCP_URL)],
+    default_options=STATELESS,
 )
 
 serve(
