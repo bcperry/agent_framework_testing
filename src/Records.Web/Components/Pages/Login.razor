@@ -1,0 +1,29 @@
+﻿@page "/login"
+
+<PageTitle>Sign in</PageTitle>
+
+<section class="login-screen">
+    <div class="login-card">
+        <h1>Records assistant</h1>
+        <p class="lede">
+            Sign in as one of these users. Behind this screen there is one agent, one prompt, one model
+            and one back end &mdash; and that back end has no authentication of its own. The only thing
+            that changes between these four sessions is who is signed in.
+        </p>
+
+        <form method="post" action="auth/login" class="user-list">
+            <AntiforgeryToken />
+
+            @foreach (var user in DemoDirectory.Users)
+            {
+                <button class="user-card" type="submit" name="upn" value="@user.Upn">
+                    <span class="user-card-main">
+                        <span class="name">@user.DisplayName</span>
+                        <span class="sub">@user.Blurb</span>
+                    </span>
+                    <span class="sub">@string.Join(", ", user.Scopes)</span>
+                </button>
+            }
+        </form>
+    </div>
+</section>

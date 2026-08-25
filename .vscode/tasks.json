@@ -3,83 +3,77 @@
   "tasks": [
     {
       "label": "Start Demo",
-      "detail": "Ctrl+Shift+B - syncs deps, then runs DevUI (which starts the records API and MCP server)",
+      "detail": "Ctrl+Shift+B - runs the records API (:8099) and the Blazor front end (:8080)",
       "type": "shell",
-      "command": "uv run devui.py",
-      "options": { "cwd": "${workspaceFolder}" },
-      "dependsOn": ["Sync dependencies"],
+      "command": "fuser -k 8080/tcp 8099/tcp >/dev/null 2>&1 || true; $HOME/.dotnet-local/dotnet run --no-build --project src/Records.Api & API_PID=$!; $HOME/.dotnet-local/dotnet run --no-build --project src/Records.Web & WEB_PID=$!; trap 'kill $API_PID $WEB_PID 2>/dev/null' EXIT INT TERM; wait",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "DOTNET_ROOT": "${env:HOME}/.dotnet-local" }
+      },
+      "dependsOn": ["Build"],
       "isBackground": true,
       "group": { "kind": "build", "isDefault": true },
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "group": "demo",
-        "clear": true
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": {
+        "owner": "demo",
+        "pattern": { "regexp": "^(?!)$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Building\.\.\.|^info:|^warn:",
+          "endsPattern": "Now listening on: http://localhost:8080"
+        }
+      }
+    },
+    {
+      "label": "Run Records API",
+      "detail": "The unauthenticated back end on :8099",
+      "type": "shell",
+      "command": "$HOME/.dotnet-local/dotnet run --no-build --project src/Records.Api",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "DOTNET_ROOT": "${env:HOME}/.dotnet-local" }
       },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "demo" },
       "problemMatcher": []
     },
     {
-      "label": "Sync dependencies",
-      "detail": "uv sync, and warn if .env is missing",
+      "label": "Run Web",
+      "detail": "Blazor Server front end and agent on :8080",
       "type": "shell",
-      "command": "uv sync && { [ -f .env ] || echo 'WARNING: .env not found. Copy .env.example to .env and fill it in, or the demo will fail to authenticate.'; }",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "group": "demo",
-        "close": true
+      "command": "$HOME/.dotnet-local/dotnet run --no-build --project src/Records.Web",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "DOTNET_ROOT": "${env:HOME}/.dotnet-local" }
       },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "demo" },
       "problemMatcher": []
     },
     {
       "label": "Stop Demo",
-      "detail": "Kill DevUI and the backing records API / MCP server",
+      "detail": "Kill both processes",
       "type": "shell",
-      "command": "pkill -f devui.py; pkill -f user_api; sleep 1; echo 'demo services stopped'",
+      "command": "pkill -f Records.Api || true; pkill -f Records.Web || true; echo 'demo stopped'",
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": { "reveal": "always", "panel": "shared", "clear": true },
       "problemMatcher": []
     },
     {
-      "label": "Run Records API only",
-      "detail": "FastAPI on :8099 with docs at /docs (DevUI starts this for you)",
+      "label": "Build",
       "type": "shell",
-      "command": "uv run uvicorn user_api.api:app --port 8099 --reload",
-      "options": { "cwd": "${workspaceFolder}" },
-      "isBackground": true,
-      "presentation": { "reveal": "always", "panel": "dedicated", "group": "services" },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run MCP server only",
-      "detail": "MCP server on :8098, generated from the FastAPI app (DevUI starts this for you)",
-      "type": "shell",
-      "command": "uv run python -m user_api.mcp_server",
-      "options": { "cwd": "${workspaceFolder}" },
-      "isBackground": true,
-      "presentation": { "reveal": "always", "panel": "dedicated", "group": "services" },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run workflow in DevUI",
-      "detail": "Content review workflow standalone on :8093",
-      "type": "shell",
-      "command": "uv run python -m workflow_agents.workflow",
-      "options": { "cwd": "${workspaceFolder}" },
-      "isBackground": true,
-      "presentation": { "reveal": "always", "panel": "dedicated" },
-      "problemMatcher": []
-    },
-    {
-      "label": "Lint and format",
-      "detail": "pre-commit: ruff check --fix, ruff format, uv lock, uv export",
-      "type": "shell",
-      "command": "uv run pre-commit run -a",
-      "options": { "cwd": "${workspaceFolder}" },
+      "command": "$HOME/.dotnet-local/dotnet restore src/Records.Api/Records.Api.csproj --disable-parallel && $HOME/.dotnet-local/dotnet restore src/Records.Web/Records.Web.csproj --disable-parallel && $HOME/.dotnet-local/dotnet build src/Records.Api/Records.Api.csproj --no-restore -m:1 -p:UseSharedCompilation=false && $HOME/.dotnet-local/dotnet build src/Records.Web/Records.Web.csproj --no-restore -m:1 -p:UseSharedCompilation=false -p:BuildInParallel=false",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "DOTNET_ROOT": "${env:HOME}/.dotnet-local",
+          "MSBUILDDISABLENODEREUSE": "1",
+          "DOTNET_CLI_USE_MSBUILD_SERVER": "0"
+        }
+      },
       "group": "test",
       "presentation": { "reveal": "always", "panel": "shared", "clear": true },
-      "problemMatcher": []
+      "problemMatcher": "$msCompile"
     }
   ]
 }

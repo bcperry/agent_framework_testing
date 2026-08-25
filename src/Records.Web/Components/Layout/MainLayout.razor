@@ -1,0 +1,41 @@
+﻿@inherits LayoutComponentBase
+
+<AuthorizeView>
+    <Authorized>
+        @{
+            var user = DemoDirectory.Find(context.User.FindFirst("upn")?.Value);
+        }
+        @if (user is not null)
+        {
+            <header class="topbar">
+                <div class="identity">
+                    <span class="who">@user.DisplayName</span>
+                    <span class="upn">@user.Upn</span>
+                </div>
+
+                <div class="chips">
+                    <span class="chip">@user.Department</span>
+                    <span class="chip">@user.Clearance</span>
+                    @if (user.CanReadRecords)
+                    {
+                        @foreach (var scope in user.Scopes)
+                        {
+                            <span class="chip scope">@scope</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="chip none">no records entitlement</span>
+                    }
+                </div>
+
+                <form class="topbar-actions" method="post" action="auth/logout">
+                    <AntiforgeryToken />
+                    <button type="submit">Sign out</button>
+                </form>
+            </header>
+        }
+    </Authorized>
+</AuthorizeView>
+
+@Body

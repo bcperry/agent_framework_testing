@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- netstandard2.0 so the identical policy + tool code is consumable from .NET Framework 4.8. -->
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.19.0" />
+    <PackageReference Include="System.Text.Json" Version="10.0.11" />
+  </ItemGroup>
+
+</Project>
