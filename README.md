@@ -14,7 +14,7 @@ across two transports.
 | # | Topic | Where |
 |---|---|---|
 | 1 | Minimal agent with MCP tools and a local function tool | [minimal_agent.ipynb](minimal_agent.ipynb) |
-| 2 | Full HTTP request/response inspection of agent traffic | [network_example.ipynb](network_example.ipynb), [network_example_Azure.ipynb](network_example_Azure.ipynb) |
+| 2 | Full HTTP request/response inspection of agent traffic | [network_example.ipynb](network_example.ipynb) |
 | 3 | **User-scoped tool calls** — per-user authorization, both REST and MCP | [user_scoped_tools.ipynb](user_scoped_tools.ipynb) |
 | 4 | Multi-agent workflow with conditional routing and convergence | [workflow_agents/workflow.py](workflow_agents/workflow.py) |
 | 5 | All of the above in a browser debug UI | [devui.py](devui.py) |
@@ -24,7 +24,7 @@ across two transports.
 ## Prerequisites
 
 - **Python 3.12** (see [.python-version](.python-version))
-- **[uv](https://docs.astral.sh/uv/)** — this project uses uv exclusively; do not use pip
+- **[uv](https://docs.astral.sh/uv/)** — this project uses uv exclusively
 - An **Azure OpenAI** resource with a deployed model
 - **Azure CLI** logged in, if the resource uses Entra ID instead of an API key
 
@@ -157,7 +157,7 @@ only the token differs:
 | User | Department | Clearance | Scopes | Result |
 |---|---|---|---|---|
 | Dana Analyst | Logistics | sensitive | `records.read` | 2 records |
-| Raj Intern | Logistics | unclassified | `records.read` | 1 record |
+| Ray Intern | Logistics | unclassified | `records.read` | 1 record |
 | Sam Auditor | all | restricted | `records.read records.read.all` | 5 records |
 | Nia Newhire | Logistics | unclassified | `openid profile` | **403** — authenticated, not authorized |
 | _(anonymous)_ | — | — | — | **401** |
